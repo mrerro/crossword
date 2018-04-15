@@ -241,18 +241,31 @@ def print_words_geometry(array):
     for word in array:
         print("name", word.name, "dlina", word.length, "peresech", word.intersections, "child", word.children,
               word.word_orientation, "coord", word.coordinates_cells)
+    print "------------"
 
 
 def print_result():
     for item in _cargo:
         _geometry_matrix[item[0][0]][item[0][1]] = item[1]
 
-    print "New crossword"
     for i in range(len(_geometry_matrix)):
-        for j in range(len(_geometry_matrix)):
+        for j in range(len(_geometry_matrix[0])):
             print (_geometry_matrix[i][j]),
         print
     print
+
+
+def write_result():
+    file = open("answer.txt", "w")
+    for cargo in _answers:
+        for item in cargo:
+            _geometry_matrix[item[0][0]][item[0][1]] = item[1]
+
+        for i in range(len(_geometry_matrix)):
+            for j in range(len(_geometry_matrix[0])):
+                file.write(_geometry_matrix[i][j] + ' ')
+            file.write('\n')
+        file.write('\n')
 
 
 if create_geometry_matrix():
@@ -260,10 +273,12 @@ if create_geometry_matrix():
     # print_words_geometry(_words_on_geometry)
     # print(len(_words_on_geometry))
     _words_on_geometry = sort_words(_words_on_geometry)
-    # print_words_geometry(_words_on_geometry)
+    print_words_geometry(_words_on_geometry)
     # print(len(_words_on_geometry))
     _dictionary_words_len, _dictionary_words = read_words(_words_on_geometry)
     # print(len(_dictionary_words_len))
+
+    print_result()
 
     for i in range(len(_dictionary_words_len)):
         if _dictionary_words_len[i] == _words_on_geometry[0].length:
@@ -273,6 +288,7 @@ if create_geometry_matrix():
             if zapolnenie(_dictionary_words_len, _dictionary_words, _words_on_geometry, 1) == 1:
                 _answers.append(_cargo)
     print len(_answers)
+    write_result()
 
     # print zapolnenie(_dictionary_words_len, _dictionary_words, _words_on_geometry, 0)
     # print(cargo)
