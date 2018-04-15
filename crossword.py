@@ -4,14 +4,16 @@ _dictionary_words = []
 _dictionary_words_len = []
 _words_on_geometry = []
 _geometry_matrix = []
+cargo = []
 
 
 class Word(object):
 
-    def __init__(self, length, coordinates_cells, word_orientation):
+    def __init__(self, length, coordinates_cells, word_orientation, status):
         self.length = length
         self.coordinates_cells = coordinates_cells
         self.word_orientation = word_orientation  # V - вертикально / H - горизонтально
+        self.status = status
 
 
 def read_words():
@@ -54,7 +56,7 @@ def search_empty_cells():
     def check_for_the_end_empty_cells(word_is_formed, word_length, coord_empty_cells, word_orientation):
         if word_is_formed:
             if word_length > 1:
-                _words_on_geometry.append(Word(word_length, coord_empty_cells, word_orientation))
+                _words_on_geometry.append(Word(word_length, coord_empty_cells, word_orientation, False))
             elif word_length == 1:
                 coord_empty_cells.pop()
 
@@ -124,43 +126,63 @@ def radix_sort(array, base=10):
     return array
 
 
-def zapolnenie(dictionary_words_len, dictionary_words, words_on_geometry, previous_index, n):
-    global answer
-    if n < len(words_on_geometry) and previous_index < len(dictionary_words):
-        # print(n, len(words_on_geometry))
-        try:
-            index = dictionary_words_len.index(words_on_geometry[n].length, previous_index)
-        except ValueError:
-            return 0
-        print(index)
-        print(dictionary_words[index])
-        if n == 0:
-            i = 0
-            for letter in dictionary_words[index]:
-                answer.append([words_on_geometry[n].coordinates_cells[i], letter])
-                i += 1
-            dictionary_words_len.pop(index)
-            dictionary_words.pop(index)
-            if zapolnenie(dictionary_words_len, dictionary_words, words_on_geometry, 0, n + 1) == 1:
-                return 1
-        else:
-            word = dictionary_words[index].strip()
-            for i in range(words_on_geometry[n].length):
-                for item in answer:
-                    if item[0] == words_on_geometry[n].coordinates_cells[i]:
-                        if item[1] == word[i]:
-                            i = 0
-                            for letter in dictionary_words[index]:
-                                answer.append([words_on_geometry[n].coordinates_cells[i], letter])
-                                i += 1
-                            dictionary_words_len.pop(index)
-                            dictionary_words.pop(index)
-                            if zapolnenie(dictionary_words_len, dictionary_words, words_on_geometry, 0, n + 1) == 1:
-                                return 1
-                        else:
-                            if zapolnenie(dictionary_words_len, dictionary_words, words_on_geometry, index + 1, n) == 1:
-                                return 1
+def zapolnenie(dictionary_words_len, dictionary_words, words_on_geometry, n):
+    global cargo
+    print(n)
+    if check2(words_on_geometry):
+        return 1
+    if n < len(words_on_geometry):
+        for i in range(len(dictionary_words_len)):
+            if dictionary_words_len[i] == words_on_geometry[n].length:
+                if check(dictionary_words[i].strip(), words_on_geometry[n].coordinates_cells):
+                    words_on_geometry[n].status = True
+                    add(dictionary_words[i].strip(), words_on_geometry[n].coordinates_cells)
+                    if zapolnenie(dictionary_words_len, dictionary_words, words_on_geometry, n + 1) == 1:
+                        return 1
+        dell(words_on_geometry[n].coordinates_cells)
     return 0
+
+    # def alg(cargo, dictionary_words_len, dictionary_words, words_on_geometry, n):
+
+
+def check2(words_on_geometry):
+    i = 0
+    for word in words_on_geometry:
+        if word.status:
+            i += 1
+    if i == len(words_on_geometry):
+        return True
+    return False
+
+
+def add(letters, coordinates_cells):
+    global cargo
+    for i in range(len(letters)):
+        cargo.append([coordinates_cells[i], letters[i]])
+
+
+def dell(coordinates_cells):
+    global cargo
+    for item in coordinates_cells:
+        cargo.pop()
+
+
+def check(letters, coordinates_cells):
+    global cargo
+    check = []
+    if len(cargo) > 0:
+        for item in cargo:
+            if coordinates_cells.count(item[0]) != 0:
+                if item[1] == letters[coordinates_cells.index(item[0])]:
+                    check.append(True)
+                else:
+                    check.append(False)
+        if len(check) == check.count(True):
+            return True
+        else:
+            return False
+    else:
+        return True
 
 
 if create_geometry_matrix():
@@ -171,11 +193,10 @@ _dictionary_words_len, _dictionary_words = read_words()
 for word in _words_on_geometry:
     print(word.length, word.word_orientation)
 
-answer = []
-print zapolnenie(_dictionary_words_len, _dictionary_words, _words_on_geometry, 0, 1)
+print zapolnenie(_dictionary_words_len, _dictionary_words, _words_on_geometry, 0)
 
-print(answer)
-for item in answer:
+print(cargo)
+for item in cargo:
     _geometry_matrix[item[0][0]][item[0][1]] = item[1]
 
 for i in range(len(_geometry_matrix)):
