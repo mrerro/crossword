@@ -15,10 +15,22 @@ class Word(object):
 
 
 def read_words():
+    dictionary_words_len = []
+    dictionary_words = []
     words = open("ruwords.txt", "r").readlines()
     for word in words:
-        _dictionary_words_len.append(len(word.rstrip()))
-        _dictionary_words.append(word.rstrip())
+        dictionary_words_len.append(len(word.rstrip()))
+        dictionary_words.append(word.rstrip())
+
+    temp_dictionary_words_len = []
+    temp_dictionary_words = []
+    for word in _words_on_geometry:
+        for len_index in range(len(dictionary_words_len)):
+            if word.length == dictionary_words_len[len_index]:
+                temp_dictionary_words_len.append(dictionary_words_len[len_index])
+                temp_dictionary_words.append(dictionary_words[len_index])
+
+    return temp_dictionary_words_len, temp_dictionary_words
 
 
 def create_geometry_matrix():
@@ -114,61 +126,56 @@ def radix_sort(array, base=10):
 
 def zapolnenie(dictionary_words_len, dictionary_words, words_on_geometry, previous_index, n):
     global answer
-    if n < len(words_on_geometry):
-        # print(n,len(words_on_geometry))
+    if n < len(words_on_geometry) and previous_index < len(dictionary_words):
+        # print(n, len(words_on_geometry))
         try:
             index = dictionary_words_len.index(words_on_geometry[n].length, previous_index)
         except ValueError:
             return 0
-        # print(index)
-        # print(dictionary_words[index])
-        i = 0
-        check = True
-        if n > 0:
-            for letter in dictionary_words[index]:
-                if was_before(answer, words_on_geometry[n].coordinates_cells[i], letter):
-                    check = False
-                    break
-                i += 1
-        if check:
+        print(index)
+        print(dictionary_words[index])
+        if n == 0:
             i = 0
             for letter in dictionary_words[index]:
                 answer.append([words_on_geometry[n].coordinates_cells[i], letter])
                 i += 1
             dictionary_words_len.pop(index)
             dictionary_words.pop(index)
-            # zapolnenie(dictionary_words_len, dictionary_words, words_on_geometry, 0, n + 1)
+            if zapolnenie(dictionary_words_len, dictionary_words, words_on_geometry, 0, n + 1) == 1:
+                return 1
         else:
-            zapolnenie(dictionary_words_len, dictionary_words, words_on_geometry, index + 1, n)
-        return 1
+            word = dictionary_words[index].strip()
+            for i in range(words_on_geometry[n].length):
+                for item in answer:
+                    if item[0] == words_on_geometry[n].coordinates_cells[i]:
+                        if item[1] == word[i]:
+                            i = 0
+                            for letter in dictionary_words[index]:
+                                answer.append([words_on_geometry[n].coordinates_cells[i], letter])
+                                i += 1
+                            dictionary_words_len.pop(index)
+                            dictionary_words.pop(index)
+                            if zapolnenie(dictionary_words_len, dictionary_words, words_on_geometry, 0, n + 1) == 1:
+                                return 1
+                        else:
+                            if zapolnenie(dictionary_words_len, dictionary_words, words_on_geometry, index + 1, n) == 1:
+                                return 1
     return 0
 
 
-def was_before(cargo, coord, letter):
-    for item in cargo:
-        if item[0] == coord:
-            if item[1] == letter:
-                return True
-            else:
-                return False
-    return True
-
-
-read_words()
 if create_geometry_matrix():
     search_empty_cells()
-
 _words_on_geometry = radix_sort(_words_on_geometry)
-# for word in _words_on_geometry:
-# print(word.length, word.word_orientation)
+_dictionary_words_len, _dictionary_words = read_words()
+
+for word in _words_on_geometry:
+    print(word.length, word.word_orientation)
 
 answer = []
-zapolnenie(_dictionary_words_len, _dictionary_words, _words_on_geometry, 0, 0)
+print zapolnenie(_dictionary_words_len, _dictionary_words, _words_on_geometry, 0, 1)
 
+print(answer)
 for item in answer:
-    #print item[1],
-    #print item[0][0],
-    #print item[0][1]
     _geometry_matrix[item[0][0]][item[0][1]] = item[1]
 
 for i in range(len(_geometry_matrix)):
