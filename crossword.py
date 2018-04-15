@@ -14,9 +14,10 @@ class Word(object):
         self.coordinates_cells = coordinates_cells
         self.word_orientation = word_orientation  # V - вертикально / H - горизонтально
         self.status = status
+        self.intersections = 0
 
 
-def read_words():
+def read_words(words_on_geometry):
     dictionary_words_len = []
     dictionary_words = []
     words = open("ruwords.txt", "r").readlines()
@@ -26,12 +27,12 @@ def read_words():
 
     temp_dictionary_words_len = []
     temp_dictionary_words = []
-    for word in _words_on_geometry:
-        for len_index in range(len(dictionary_words_len)):
-            if word.length == dictionary_words_len[len_index]:
-                temp_dictionary_words_len.append(dictionary_words_len[len_index])
-                temp_dictionary_words.append(dictionary_words[len_index])
-
+    for word in words_on_geometry:
+        if temp_dictionary_words_len.count(word.length) == 0:
+            for len_index in range(len(dictionary_words_len)):
+                if word.length == dictionary_words_len[len_index]:
+                    temp_dictionary_words_len.append(dictionary_words_len[len_index])
+                    temp_dictionary_words.append(dictionary_words[len_index])
     return temp_dictionary_words_len, temp_dictionary_words
 
 
@@ -93,12 +94,27 @@ def search_empty_cells():
         check_for_the_end_empty_cells(word_is_formed, word_length, coord_empty_cells, 'V')
 
 
-def radix_sort(array, base=10):
-    def list_to_buckets(array, base, iteration):
+def sort_words(words):
+    words = radix_sort(words, 'l')  # сортируем по убыванию длины
+    for i in range(len(words)):  # подсчитываем количество пересекающихся ячеек в слове
+        temp_array = list(words)
+        word = temp_array.pop(i)
+        for item in temp_array:
+            for cell in word.coordinates_cells:
+                if item.coordinates_cells.count(cell) > 0:
+                    words[i].intersections += 1
+    return radix_sort(words, 'i')  # сортируем по убыванию пересечений
+
+
+def radix_sort(array, key, base=10, ):
+    def list_to_buckets(array, base, iteration, key):
         buckets = [[] for _ in range(base)]
         for number in array:
             # Isolate the base-digit from the number
-            digit = (number.length // (base ** iteration)) % base
+            if key == 'l':
+                digit = (number.length // (base ** iteration)) % base
+            elif key == 'i':
+                digit = (number.intersections // (base ** iteration)) % base
             # Drop the number into the correct bucket
             buckets[digit].append(number)
         return buckets
@@ -114,21 +130,25 @@ def radix_sort(array, base=10):
 
     word_len = []
     for item in array:
-        word_len.append(item.length)
+        if key == 'l':
+            word_len.append(item.length)
+        elif key == 'i':
+            word_len.append(item.intersections)
+
     maxval = max(word_len)
 
     it = 0
     # Iterate, sorting the array by each base-digit
     while base ** it <= maxval:
-        array = buckets_to_list(list_to_buckets(array, base, it))
+        array = buckets_to_list(list_to_buckets(array, base, it, key))
         it += 1
-
     return array
 
 
 def zapolnenie(dictionary_words_len, dictionary_words, words_on_geometry, n):
     global cargo
-    print(n)
+    # print n
+    # print cargo
     if check2(words_on_geometry):
         return 1
     if n < len(words_on_geometry):
@@ -139,7 +159,7 @@ def zapolnenie(dictionary_words_len, dictionary_words, words_on_geometry, n):
                     add(dictionary_words[i].strip(), words_on_geometry[n].coordinates_cells)
                     if zapolnenie(dictionary_words_len, dictionary_words, words_on_geometry, n + 1) == 1:
                         return 1
-        dell(words_on_geometry[n].coordinates_cells)
+                    dell(words_on_geometry[n].coordinates_cells)
     return 0
 
     # def alg(cargo, dictionary_words_len, dictionary_words, words_on_geometry, n):
@@ -187,19 +207,21 @@ def check(letters, coordinates_cells):
 
 if create_geometry_matrix():
     search_empty_cells()
-_words_on_geometry = radix_sort(_words_on_geometry)
-_dictionary_words_len, _dictionary_words = read_words()
 
-for word in _words_on_geometry:
-    print(word.length, word.word_orientation)
+    _words_on_geometry = sort_words(_words_on_geometry)
 
-print zapolnenie(_dictionary_words_len, _dictionary_words, _words_on_geometry, 0)
+    _dictionary_words_len, _dictionary_words = read_words(_words_on_geometry)
+    print(len(_dictionary_words_len))
 
-print(cargo)
-for item in cargo:
-    _geometry_matrix[item[0][0]][item[0][1]] = item[1]
+    for word in _words_on_geometry:
+        print(word.length, word.intersections, word.word_orientation)
+    print zapolnenie(_dictionary_words_len, _dictionary_words, _words_on_geometry, 0)
+    print(cargo)
 
-for i in range(len(_geometry_matrix)):
-    for j in range(len(_geometry_matrix)):
-        print (_geometry_matrix[i][j]),
-    print
+    for item in cargo:
+        _geometry_matrix[item[0][0]][item[0][1]] = item[1]
+
+    for i in range(len(_geometry_matrix)):
+        for j in range(len(_geometry_matrix)):
+            print (_geometry_matrix[i][j]),
+        print
