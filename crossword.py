@@ -43,21 +43,22 @@ def create_geometry_matrix():
     lines = open("geometry.txt", "r").readlines()
     for line in lines:
         line = line.rstrip()
-        j = 0
+        #j = 0
         temp_line = []
         for cell in line:
             temp_line.append(cell)
-            j += 1
-        if j == len(lines):
-            _geometry_matrix.append(temp_line)
-        else:
-            print("Не квадратичная геометрия")
-            return False
+            #j += 1
+        #if j == len(lines):
+        _geometry_matrix.append(temp_line)
+        #else:
+            #print("Не квадратичная геометрия")
+            #return False
     return True
 
 
 def search_empty_cells():
     def check_for_the_end_empty_cells(word_is_formed, word_length, coord_empty_cells, word_orientation):
+        #print word_is_formed, word_length, word_orientation
         if word_is_formed:
             if word_length > 1:
                 _words_on_geometry.append(Word(word_length, coord_empty_cells, word_orientation, False))
@@ -68,7 +69,7 @@ def search_empty_cells():
         word_length = 0
         word_is_formed = False
         coord_empty_cells = []
-        for j in range(len(_geometry_matrix)):
+        for j in range(len(_geometry_matrix[0])):
             if _geometry_matrix[i][j] == '@':
                 word_is_formed = True
                 coord_empty_cells.append((i, j))
@@ -80,7 +81,7 @@ def search_empty_cells():
                 word_length = 0
         check_for_the_end_empty_cells(word_is_formed, word_length, coord_empty_cells, 'H')
 
-    for j in range(len(_geometry_matrix)):  # вертикальный проход
+    for j in range(len(_geometry_matrix[0])):  # вертикальный проход
         word_length = 0
         word_is_formed = False
         coord_empty_cells = []
