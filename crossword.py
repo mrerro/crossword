@@ -2,6 +2,7 @@
 
 _dictionary_words = []
 _dictionary_words_len = []
+_dictionarys = []
 _words_on_geometry = []
 _geometry_matrix = []
 _answers = []
@@ -20,6 +21,14 @@ class Word(object):
         self.children = []
 
 
+class Dictionary(object):
+
+    def __init__(self, rank, words, lengths):
+        self.rank = rank
+        self.words = words
+        self.lengths = lengths
+
+
 def read_words(words_on_geometry):
     dictionary_words_len = []
     dictionary_words = []
@@ -28,37 +37,43 @@ def read_words(words_on_geometry):
         dictionary_words_len.append(len(word.rstrip()))
         dictionary_words.append(word.rstrip())
 
+    lengths = []
+    for word in words_on_geometry:
+        if lengths.count(word.length) == 0:
+            lengths.append(word.length)
+
+    dictionarys = []
     temp_dictionary_words_len = []
     temp_dictionary_words = []
-    for word in words_on_geometry:
-        if temp_dictionary_words_len.count(word.length) == 0:
-            for len_index in range(len(dictionary_words_len)):
-                if word.length == dictionary_words_len[len_index]:
-                    temp_dictionary_words_len.append(dictionary_words_len[len_index])
-                    temp_dictionary_words.append(dictionary_words[len_index])
-    return temp_dictionary_words_len, temp_dictionary_words
+    for length in lengths:
+        for len_index in range(len(dictionary_words_len)):
+            if length == dictionary_words_len[len_index]:
+                temp_dictionary_words_len.append(dictionary_words_len[len_index])
+                temp_dictionary_words.append(dictionary_words[len_index])
+        dictionarys.append(Dictionary(length, temp_dictionary_words, temp_dictionary_words_len))
+    return dictionarys
 
 
 def create_geometry_matrix():
     lines = open("geometry.txt", "r").readlines()
     for line in lines:
         line = line.rstrip()
-        #j = 0
+        # j = 0
         temp_line = []
         for cell in line:
             temp_line.append(cell)
-            #j += 1
-        #if j == len(lines):
+            # j += 1
+        # if j == len(lines):
         _geometry_matrix.append(temp_line)
-        #else:
-            #print("Не квадратичная геометрия")
-            #return False
+        # else:
+        # print("Не квадратичная геометрия")
+        # return False
     return True
 
 
 def search_empty_cells():
     def check_for_the_end_empty_cells(word_is_formed, word_length, coord_empty_cells, word_orientation):
-        #print word_is_formed, word_length, word_orientation
+        # print word_is_formed, word_length, word_orientation
         if word_is_formed:
             if word_length > 1:
                 _words_on_geometry.append(Word(word_length, coord_empty_cells, word_orientation, False))
@@ -99,13 +114,27 @@ def search_empty_cells():
 
 
 def sort_words(words):
+    def count_intersections_or_children(words, key):
+        for i in range(len(words)):  # подсчитываем количество пересекающихся ячеек в слове ???
+            for j in range(len(words)):
+                if i != j:
+                    if key == 'c' and len(words[j].children) == 0:
+                        for cell in words[i].coordinates_cells:
+                            if words[j].coordinates_cells.count(cell) > 0:
+                                words[i].children.append(words[j].name)
+                    elif key == 'i' and words[i].intersections == 0:
+                        for cell in words[i].coordinates_cells:
+                            if words[j].coordinates_cells.count(cell) > 0:
+                                words[i].intersections += 1
+
     def set_names(words):
         for name in range(len(words)):
             words[name].name = name
 
     def sort_by_children(words):
         sort_index = [0]
-        sort_by_children_recurs(sort_index, words, 0)
+        for i in range(len(words)):
+            sort_by_children_recurs(sort_index, words, i)
         sort_array = []
         # print sort_index
         for index in sort_index:
@@ -114,23 +143,29 @@ def sort_words(words):
 
     def sort_by_children_recurs(sort_index, words, i):
         if i < range(len(words)):
+            # print words[i].name,words[i].children
             if len(words[i].children) > 0:
                 for child in words[i].children:
                     if sort_index.count(child) == 0:
                         sort_index.append(child)
                         if sort_by_children_recurs(sort_index, words, child) == 1:
                             return 1
+                    else:
+                        if sort_index.count(i) == 0:
+                            sort_index.append(i)
+                            return 1
+            else:
+                if sort_index.count(i) == 0:
+                    sort_index.append(i)
+                    return 1
         return 0
 
     words = radix_sort(words, 'l')  # сортируем по убыванию длины
+    count_intersections_or_children(words, 'i')
+    words = radix_sort(words, 'i')  # сортируем по убыванию пересечений
     set_names(words)
-    for i in range(len(words)):  # подсчитываем количество пересекающихся ячеек в слове
-        for j in range(i + 1, len(words)):
-            for cell in words[i].coordinates_cells:
-                if words[j].coordinates_cells.count(cell) > 0:
-                    # print ("names",words[i].name,words[i].coordinates_cells,"/",words[j].name,words[j].coordinates_cells)
-                    words[i].intersections += 1
-                    words[i].children.append(words[j].name)
+    count_intersections_or_children(words, 'c')
+    # print_words_geometry(words)
     return sort_by_children(words)
 
 
@@ -174,17 +209,17 @@ def radix_sort(array, key, base=10, ):
 
 
 def zapolnenie(dictionary_words_len, dictionary_words, words_on_geometry, n):
-    global _cargo
-    # print n
-    # print cargo
-    if check2(words_on_geometry):
-        return 1
+    global _cargo, _answers
+    if n == len(words_on_geometry):
+        if _answers.count(_cargo) == 0:
+            _answers.append(list(_cargo))
+
     if n < len(words_on_geometry):
         for i in range(len(dictionary_words_len)):
             if dictionary_words_len[i] == words_on_geometry[n].length:
-                if check(dictionary_words[i].strip(), words_on_geometry[n].coordinates_cells):
+                if intersection_check(dictionary_words[i].strip(), words_on_geometry[n].coordinates_cells):
                     words_on_geometry[n].status = True
-                    add(dictionary_words[i].strip(), words_on_geometry[n].coordinates_cells)
+                    add_to_cargo(dictionary_words[i].strip(), words_on_geometry[n].coordinates_cells)
                     temp_dictionary_words_len = list(dictionary_words_len)
                     temp_dictionary_words = list(dictionary_words)
                     temp_dictionary_words_len.pop(i)
@@ -192,13 +227,11 @@ def zapolnenie(dictionary_words_len, dictionary_words, words_on_geometry, n):
                     if zapolnenie(temp_dictionary_words_len, temp_dictionary_words, words_on_geometry, n + 1) == 1:
                         return 1
                     words_on_geometry[n].status = False
-                    dell(words_on_geometry[n].coordinates_cells)
+                    dell_from_cargo(words_on_geometry[n].coordinates_cells)
     return 0
 
-    # def alg(cargo, dictionary_words_len, dictionary_words, words_on_geometry, n):
 
-
-def check2(words_on_geometry):
+def check_all_words_filled(words_on_geometry):  # можно использовать для поиска одного пкрвого решения
     i = 0
     for word in words_on_geometry:
         if word.status:
@@ -208,29 +241,30 @@ def check2(words_on_geometry):
     return False
 
 
-def add(letters, coordinates_cells):
+def add_to_cargo(letters, coordinates_cells):
     global _cargo
     for i in range(len(letters)):
         _cargo.append([coordinates_cells[i], letters[i]])
 
 
-def dell(coordinates_cells):
+def dell_from_cargo(coordinates_cells):
     global _cargo
     for item in coordinates_cells:
         _cargo.pop()
 
 
-def check(letters, coordinates_cells):
+def intersection_check(letters, coordinates_cells):
     global _cargo
     check = []
     if len(_cargo) > 0:
         for item in _cargo:
-            if coordinates_cells.count(item[0]) != 0:
-                if item[1] == letters[coordinates_cells.index(item[0])]:
-                    check.append(True)
-                else:
-                    check.append(False)
-        if len(check) == check.count(True):
+            for c in range(len(coordinates_cells)):
+                if item[0] == coordinates_cells[c]:
+                    if item[1] == letters[c]:
+                        check.append(True)
+                    else:
+                        check.append(False)
+        if check.count(False) == 0:
             return True
         else:
             return False
@@ -276,21 +310,12 @@ if create_geometry_matrix():
     _words_on_geometry = sort_words(_words_on_geometry)
     print_words_geometry(_words_on_geometry)
     # print(len(_words_on_geometry))
-    _dictionary_words_len, _dictionary_words = read_words(_words_on_geometry)
+    _dictionarys = read_words(_words_on_geometry)
     # print(len(_dictionary_words_len))
 
     print_result()
-
     for i in range(len(_dictionary_words_len)):
-        if _dictionary_words_len[i] == _words_on_geometry[0].length:
-            _cargo = []
-            _words_on_geometry[0].status = True
-            add(_dictionary_words[i].strip(), _words_on_geometry[0].coordinates_cells)
-            if zapolnenie(_dictionary_words_len, _dictionary_words, _words_on_geometry, 1) == 1:
-                _answers.append(_cargo)
+        _cargo = []
+        zapolnenie(_dictionary_words_len, _dictionary_words, _words_on_geometry, 0)
     print len(_answers)
     write_result()
-
-    # print zapolnenie(_dictionary_words_len, _dictionary_words, _words_on_geometry, 0)
-    # print(cargo)
-    # print_result()
