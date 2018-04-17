@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+from tkinter import filedialog
+from tkinter import *
 
 _dictionaries = {}
 _words_on_geometry = []
@@ -6,6 +8,10 @@ _geometry_matrix = []
 _answers = []
 _cargo = []
 _number_of_answers = 1
+_check = False
+
+_file_geometry_name = "geometry.txt"
+_file_dictionary_name = "ruwords.txt"
 
 
 class Word(object):
@@ -30,7 +36,7 @@ class Dictionary(object):
 def read_words(words_on_geometry):
     dictionary_words_len = []
     dictionary_words = []
-    words = open("ruwords.txt", "r").readlines()
+    words = open(_file_dictionary_name, "r").readlines()
     for word in words:
         dictionary_words_len.append(len(word.rstrip()))
         dictionary_words.append(word.rstrip())
@@ -51,7 +57,7 @@ def read_words(words_on_geometry):
 
 
 def create_geometry_matrix():
-    lines = open("geometry.txt", "r").readlines()
+    lines = open(_file_geometry_name, "r").readlines()
     for line in lines:
         line = line.rstrip()
         temp_line = []
@@ -279,24 +285,30 @@ def print_result(cargo):
     print
 
 
-def print_result_spisok(index):
-    h = []
-    v = []
-    for item in _words_on_geometry:
-        word = ''
-        for cell in item.coordinates_cells:
-            key = 0
-            for cargo_item in _answers[index]:
-                if cargo_item[0] == cell and key == 0:
-                    word += cargo_item[1]
-                    key += 1
-        if item.word_orientation == 'V':
-            v.append(word)
-        elif item.word_orientation == 'H':
-            h.append(word)
-    print(index, "- решение")
-    print("По горизонтали", h)
-    print("По вертикали", v)
+def print_result_spisok():
+    index = int(message.get())
+    for i in range(index):
+        if i < len(_answers):
+            h = []
+            v = []
+            for item in _words_on_geometry:
+                word = ''
+                for cell in item.coordinates_cells:
+                    key = 0
+                    for cargo_item in _answers[i]:
+                        if cargo_item[0] == cell and key == 0:
+                            word += cargo_item[1]
+                            key += 1
+                if item.word_orientation == 'V':
+                    v.append(word)
+                elif item.word_orientation == 'H':
+                    h.append(word)
+
+            s_h = "По горизонтали: {} \n".format(h)
+            s_v = "По вертикали: {} \n".format(v)
+            textbox.insert(INSERT, "\n {} - решение \n".format(index))
+            textbox.insert(INSERT, s_h)
+            textbox.insert(INSERT, s_v)
 
 
 def write_result():
@@ -312,15 +324,101 @@ def write_result():
         file.write('\n')
 
 
-if create_geometry_matrix():
-    search_empty_cells()
-    _words_on_geometry = sort_words(_words_on_geometry)
-    _dictionaries = read_words(_words_on_geometry)
-    _number_of_answers = 10000
-    zapolnenie(_dictionaries, _words_on_geometry, 0)
-    print(len(_answers))
-    write_result()
-    print_result_spisok(959)
-    print_result_spisok(9999)
-    # for i in range(len(_answers)):
-    #     print_result_spisok(i)
+def start():
+    global _answers, _geometry_matrix, _words_on_geometry, _number_of_answers, _dictionaries, _check
+
+    if not _check:
+        _dictionaries = {}
+        _words_on_geometry = []
+        _geometry_matrix = []
+        _answers = []
+
+        _number_of_answers = int(message.get())
+        textbox.delete('1.0', 'end')
+        textbox.insert('1.0', 'start')
+        if create_geometry_matrix():
+            _check = True
+            search_empty_cells()
+            _words_on_geometry = sort_words(_words_on_geometry)
+            _dictionaries = read_words(_words_on_geometry)
+            zapolnenie(_dictionaries, _words_on_geometry, 0)
+            write_result()
+            message.set(len(_answers))
+            textbox.delete('1.0', 'end')
+            textbox.insert('1.0', 'finish')
+        _check = False
+
+
+def window_quit():
+    global root
+    root.destroy()
+
+
+def load_geometry():
+    global _file_geometry_name
+    fn = filedialog.Open(root, filetypes=[('*.txt files', '.txt')]).show()
+    if fn == '':
+        return
+    _file_geometry_name = fn
+    textbox.delete('1.0', 'end')
+    textbox.insert('1.0', open(fn, 'rt').read().replace('#', '  #'))
+
+
+def save_geometry():
+    fn = filedialog.SaveAs(root, filetypes=[('*.txt files', '.txt')]).show()
+    if fn == '':
+        return
+    if not fn.endswith(".txt"):
+        fn += ".txt"
+    open(fn, 'wt').write(textbox.get('1.0', 'end-1c').replace(' ', ''))
+
+
+def load_dictionary():
+    global _file_dictionary_name
+    fn = filedialog.Open(root, filetypes=[('*.txt files', '.txt')]).show()
+    if fn == '':
+        return
+    _file_dictionary_name = fn
+
+
+root = Tk()
+root.title("Crossword filler")
+
+panelFrame = Frame(root, height=60, bg='gray')
+textFrame = Frame(root, height=340, width=600)
+
+panelFrame.pack(side='top', fill='x')
+textFrame.pack(side='bottom', fill='both', expand=1)
+
+textbox = Text(textFrame, font='Arial 14', wrap='word')
+scrollbar = Scrollbar(textFrame)
+
+scrollbar['command'] = textbox.yview
+textbox['yscrollcommand'] = scrollbar.set
+
+textbox.pack(side='left', fill='both', expand=1)
+scrollbar.pack(side='right', fill='y')
+
+message = StringVar()
+numberEntry = Entry(panelFrame, textvariable=message)
+message.set(1)
+
+loadBtn = Button(panelFrame, text='Загрузить геометрию', command=load_geometry)
+saveBtn = Button(panelFrame, text='Сохранить геометрию', command=save_geometry)
+quitBtn = Button(panelFrame, text='Выход', command=window_quit)
+loadwordBtn = Button(panelFrame, text='Загрузить словарик', command=load_dictionary)
+startBtn = Button(panelFrame, text='Запуск', command=start)
+showBtn = Button(panelFrame, text='Показать решения', command=print_result_spisok)
+#
+# startBtn.bind("<Button-1>", start(message.get()))
+# quitBtn.bind("<Button-1>", Quit)
+
+loadBtn.place(x=10, y=10, width=130, height=40)
+saveBtn.place(x=145, y=10, width=130, height=40)
+loadwordBtn.place(x=280, y=10, width=125, height=40)
+numberEntry.place(x=410, y=10, width=40, height=39)
+startBtn.place(x=460, y=10, width=80, height=40)
+showBtn.place(x=550, y=10, width=125, height=40)
+quitBtn.place(x=680, y=10, width=50, height=40)
+
+root.mainloop()
