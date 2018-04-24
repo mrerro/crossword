@@ -306,7 +306,7 @@ def print_result_spisok():
 
             s_h = "По горизонтали: {} \n".format(h)
             s_v = "По вертикали: {} \n".format(v)
-            textbox.insert(INSERT, "\n {} - решение \n".format(index))
+            textbox.insert(INSERT, "\n {} - решение \n".format(i))
             textbox.insert(INSERT, s_h)
             textbox.insert(INSERT, s_v)
 
@@ -325,27 +325,24 @@ def write_result():
 
 
 def start():
-    global _answers, _geometry_matrix, _words_on_geometry, _number_of_answers, _dictionaries, _check
+    global _answers, _words_on_geometry, _number_of_answers, _dictionaries, _check
 
     if not _check:
-        _dictionaries = {}
-        _words_on_geometry = []
-        _geometry_matrix = []
+        _check = True
         _answers = []
 
         _number_of_answers = int(message.get())
         textbox.delete('1.0', 'end')
-        textbox.insert('1.0', 'start')
+        textbox.insert(INSERT, 'start \n')
         if create_geometry_matrix():
-            _check = True
             search_empty_cells()
             _words_on_geometry = sort_words(_words_on_geometry)
             _dictionaries = read_words(_words_on_geometry)
             zapolnenie(_dictionaries, _words_on_geometry, 0)
             write_result()
             message.set(len(_answers))
-            textbox.delete('1.0', 'end')
-            textbox.insert('1.0', 'finish')
+            textbox.insert(INSERT, 'finish')
+        startBtn.place_forget()
         _check = False
 
 
